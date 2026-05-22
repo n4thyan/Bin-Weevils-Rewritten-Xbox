@@ -32,7 +32,7 @@ try {
     // be closed automatically when the JavaScript object is garbage collected.
     autoUpdater.checkForUpdatesAndNotify();
     let mainWindow;
-    var server = 'https://play.binweevils.net';
+    var server = 'https://play.binweevils.app';
 
     const url = `${server}/update/${process.platform}/${app.getVersion()}`;
     
