@@ -1,0 +1,11 @@
+.vs/
+AppPackages/
+**/bin/
+**/obj/
+*.pfx
+*.cer
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+TestResults/
