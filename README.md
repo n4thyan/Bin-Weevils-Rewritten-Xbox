@@ -14,7 +14,7 @@ This repository began as a fork of the original Electron desktop client. The Xbo
 The UWP client currently includes:
 
 - Full-screen navigation to `https://play.binweevils.app/`
-- Support for official `binweevils.app` pages and legacy `bwrewritten.com` links
+- Support for the official `binweevils.app` domain and its subdomains only
 - Persistent WebView cookies and login sessions
 - Internal handling for login, registration, blog/news, and game pages
 - External-link protection so unrelated websites open outside the client
@@ -104,6 +104,7 @@ The first Series S/X test should confirm:
 - [x] Preserve the upstream Electron client as a reference
 - [x] Add an Xbox-compatible UWP solution
 - [x] Load official Bin Weevils Rewritten pages
+- [x] Restrict in-app navigation to `binweevils.app`
 - [x] Add login-session persistence and safe navigation
 - [x] Add automated signed APPX builds
 - [ ] Complete first Xbox Series S/X hardware test
