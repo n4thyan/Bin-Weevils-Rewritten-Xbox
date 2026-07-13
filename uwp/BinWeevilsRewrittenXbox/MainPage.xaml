@@ -14,6 +14,21 @@
             NewWindowRequested="GameWebView_NewWindowRequested" />
 
         <Border
+            x:Name="ControllerHelp"
+            Background="#D9202020"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Margin="24"
+            Padding="14,8"
+            CornerRadius="6"
+            Visibility="Collapsed">
+            <TextBlock
+                Text="D-pad/Left stick: move  •  A: select  •  B: back  •  X: refresh  •  Y: home"
+                FontSize="15"
+                Foreground="White" />
+        </Border>
+
+        <Border
             x:Name="StatusOverlay"
             Background="#CC101010"
             HorizontalAlignment="Center"
