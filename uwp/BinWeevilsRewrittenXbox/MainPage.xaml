@@ -20,7 +20,7 @@
             VerticalAlignment="Center"
             Padding="28"
             CornerRadius="8">
-            <StackPanel Spacing="12">
+            <StackPanel Spacing="12" MaxWidth="620">
                 <TextBlock
                     Text="Bin Weevils Rewritten Xbox"
                     FontSize="32"
@@ -30,12 +30,25 @@
                     x:Name="StatusText"
                     Text="Opening Bin Weevils Rewritten…"
                     FontSize="18"
+                    TextWrapping="Wrap"
                     Foreground="White" />
                 <ProgressRing
                     x:Name="LoadingRing"
                     IsActive="True"
                     Width="42"
                     Height="42" />
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button
+                        x:Name="RetryButton"
+                        Content="Try again"
+                        Click="RetryButton_Click"
+                        Visibility="Collapsed" />
+                    <Button
+                        x:Name="HomeButton"
+                        Content="Home"
+                        Click="HomeButton_Click"
+                        Visibility="Collapsed" />
+                </StackPanel>
             </StackPanel>
         </Border>
     </Grid>
