@@ -12,6 +12,7 @@ namespace BinWeevilsRewrittenXbox
     {
         private static readonly Uri StartUri = new Uri("https://play.binweevils.app/");
         private readonly SystemNavigationManager navigationManager = SystemNavigationManager.GetForCurrentView();
+        private Uri lastRequestedUri = StartUri;
 
         public MainPage()
         {
@@ -27,6 +28,14 @@ namespace BinWeevilsRewrittenXbox
             var browserBack = new KeyboardAccelerator { Key = VirtualKey.GoBack };
             browserBack.Invoked += BackAccelerator_Invoked;
             KeyboardAccelerators.Add(browserBack);
+
+            var refresh = new KeyboardAccelerator { Key = VirtualKey.F5 };
+            refresh.Invoked += RefreshAccelerator_Invoked;
+            KeyboardAccelerators.Add(refresh);
+
+            var home = new KeyboardAccelerator { Key = VirtualKey.Home };
+            home.Invoked += HomeAccelerator_Invoked;
+            KeyboardAccelerators.Add(home);
         }
 
         private void MainPage_Loaded(object sender, RoutedEventArgs e)
@@ -35,7 +44,7 @@ namespace BinWeevilsRewrittenXbox
 
             if (GameWebView.Source == null)
             {
-                GameWebView.Navigate(StartUri);
+                NavigateTo(StartUri);
             }
 
             UpdateBackButtonState();
@@ -55,9 +64,12 @@ namespace BinWeevilsRewrittenXbox
                 return;
             }
 
-            StatusText.Text = "Loading " + (args.Uri?.Host ?? "Bin Weevils Rewritten") + "…";
-            StatusOverlay.Visibility = Visibility.Visible;
-            LoadingRing.IsActive = true;
+            if (args.Uri != null)
+            {
+                lastRequestedUri = args.Uri;
+            }
+
+            ShowLoading("Loading " + (args.Uri?.Host ?? "Bin Weevils Rewritten") + "…");
         }
 
         private void GameWebView_NavigationCompleted(WebView sender, WebViewNavigationCompletedEventArgs args)
@@ -68,10 +80,14 @@ namespace BinWeevilsRewrittenXbox
             if (args.IsSuccess)
             {
                 StatusOverlay.Visibility = Visibility.Collapsed;
+                RetryButton.Visibility = Visibility.Collapsed;
+                HomeButton.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            StatusText.Text = "The page could not be loaded. Check the Xbox network connection and try again.";
+            StatusText.Text = "The page could not be loaded. Check the Xbox network connection, then try again.";
+            RetryButton.Visibility = Visibility.Visible;
+            HomeButton.Visibility = Visibility.Visible;
             StatusOverlay.Visibility = Visibility.Visible;
         }
 
@@ -81,7 +97,7 @@ namespace BinWeevilsRewrittenXbox
 
             if (IsInternalUri(args.Uri))
             {
-                sender.Navigate(args.Uri);
+                NavigateTo(args.Uri);
                 return;
             }
 
@@ -89,6 +105,16 @@ namespace BinWeevilsRewrittenXbox
             {
                 await Launcher.LaunchUriAsync(args.Uri);
             }
+        }
+
+        private void RetryButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigateTo(lastRequestedUri ?? StartUri);
+        }
+
+        private void HomeButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigateTo(StartUri);
         }
 
         private void NavigationManager_BackRequested(object sender, BackRequestedEventArgs e)
@@ -99,6 +125,38 @@ namespace BinWeevilsRewrittenXbox
         private void BackAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
         {
             args.Handled = TryGoBack();
+        }
+
+        private void RefreshAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            NavigateTo(GameWebView.Source ?? lastRequestedUri ?? StartUri);
+            args.Handled = true;
+        }
+
+        private void HomeAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            NavigateTo(StartUri);
+            args.Handled = true;
+        }
+
+        private void NavigateTo(Uri uri)
+        {
+            if (uri == null || !IsInternalUri(uri))
+            {
+                uri = StartUri;
+            }
+
+            lastRequestedUri = uri;
+            GameWebView.Navigate(uri);
+        }
+
+        private void ShowLoading(string message)
+        {
+            StatusText.Text = message;
+            RetryButton.Visibility = Visibility.Collapsed;
+            HomeButton.Visibility = Visibility.Collapsed;
+            StatusOverlay.Visibility = Visibility.Visible;
+            LoadingRing.IsActive = true;
         }
 
         private bool TryGoBack()
