@@ -4,7 +4,14 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - xbox-uwp
+    paths:
+      - 'uwp/**'
+      - '.github/workflows/build-xbox-uwp.yml'
+  pull_request:
+    branches:
+      - main
     paths:
       - 'uwp/**'
       - '.github/workflows/build-xbox-uwp.yml'
@@ -41,7 +48,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path .\uwp\signing | Out-Null
           Export-PfxCertificate -Cert $cert -FilePath .\uwp\signing\test-signing.pfx -Password $password | Out-Null
           Export-Certificate -Cert $cert -FilePath .\uwp\signing\BinWeevilsRewrittenXbox.cer | Out-Null
-
           "password=$passwordText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Restore packages
