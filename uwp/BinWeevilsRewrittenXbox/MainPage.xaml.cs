@@ -1,7 +1,9 @@
 using System;
 using Windows.System;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 
 namespace BinWeevilsRewrittenXbox
@@ -9,24 +11,50 @@ namespace BinWeevilsRewrittenXbox
     public sealed partial class MainPage : Page
     {
         private static readonly Uri StartUri = new Uri("https://play.binweevils.app/");
+        private readonly SystemNavigationManager navigationManager = SystemNavigationManager.GetForCurrentView();
 
         public MainPage()
         {
             InitializeComponent();
             NavigationCacheMode = NavigationCacheMode.Required;
             Loaded += MainPage_Loaded;
+            Unloaded += MainPage_Unloaded;
+
+            var escape = new KeyboardAccelerator { Key = VirtualKey.Escape };
+            escape.Invoked += BackAccelerator_Invoked;
+            KeyboardAccelerators.Add(escape);
+
+            var browserBack = new KeyboardAccelerator { Key = VirtualKey.GoBack };
+            browserBack.Invoked += BackAccelerator_Invoked;
+            KeyboardAccelerators.Add(browserBack);
         }
 
         private void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
+            navigationManager.BackRequested += NavigationManager_BackRequested;
+
             if (GameWebView.Source == null)
             {
                 GameWebView.Navigate(StartUri);
             }
+
+            UpdateBackButtonState();
         }
 
-        private void GameWebView_NavigationStarting(WebView sender, WebViewNavigationStartingEventArgs args)
+        private void MainPage_Unloaded(object sender, RoutedEventArgs e)
         {
+            navigationManager.BackRequested -= NavigationManager_BackRequested;
+        }
+
+        private async void GameWebView_NavigationStarting(WebView sender, WebViewNavigationStartingEventArgs args)
+        {
+            if (args.Uri != null && !IsInternalUri(args.Uri))
+            {
+                args.Cancel = true;
+                await Launcher.LaunchUriAsync(args.Uri);
+                return;
+            }
+
             StatusText.Text = "Loading " + (args.Uri?.Host ?? "Bin Weevils Rewritten") + "…";
             StatusOverlay.Visibility = Visibility.Visible;
             LoadingRing.IsActive = true;
@@ -35,6 +63,7 @@ namespace BinWeevilsRewrittenXbox
         private void GameWebView_NavigationCompleted(WebView sender, WebViewNavigationCompletedEventArgs args)
         {
             LoadingRing.IsActive = false;
+            UpdateBackButtonState();
 
             if (args.IsSuccess)
             {
@@ -50,24 +79,71 @@ namespace BinWeevilsRewrittenXbox
         {
             args.Handled = true;
 
-            if (IsBinWeevilsUri(args.Uri))
+            if (IsInternalUri(args.Uri))
             {
                 sender.Navigate(args.Uri);
                 return;
             }
 
-            await Launcher.LaunchUriAsync(args.Uri);
+            if (args.Uri != null)
+            {
+                await Launcher.LaunchUriAsync(args.Uri);
+            }
         }
 
-        private static bool IsBinWeevilsUri(Uri uri)
+        private void NavigationManager_BackRequested(object sender, BackRequestedEventArgs e)
         {
-            if (uri == null || uri.Scheme != Uri.UriSchemeHttps)
+            e.Handled = TryGoBack();
+        }
+
+        private void BackAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            args.Handled = TryGoBack();
+        }
+
+        private bool TryGoBack()
+        {
+            if (!GameWebView.CanGoBack)
             {
                 return false;
             }
 
-            return uri.Host.Equals("binweevils.app", StringComparison.OrdinalIgnoreCase)
-                || uri.Host.EndsWith(".binweevils.app", StringComparison.OrdinalIgnoreCase);
+            GameWebView.GoBack();
+            return true;
+        }
+
+        private void UpdateBackButtonState()
+        {
+            navigationManager.AppViewBackButtonVisibility = GameWebView.CanGoBack
+                ? AppViewBackButtonVisibility.Visible
+                : AppViewBackButtonVisibility.Collapsed;
+        }
+
+        private static bool IsInternalUri(Uri uri)
+        {
+            if (uri == null)
+            {
+                return false;
+            }
+
+            if (uri.Scheme == "about")
+            {
+                return true;
+            }
+
+            if (uri.Scheme != Uri.UriSchemeHttps)
+            {
+                return false;
+            }
+
+            return IsHostOrSubdomain(uri.Host, "binweevils.app")
+                || IsHostOrSubdomain(uri.Host, "bwrewritten.com");
+        }
+
+        private static bool IsHostOrSubdomain(string host, string domain)
+        {
+            return host.Equals(domain, StringComparison.OrdinalIgnoreCase)
+                || host.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
