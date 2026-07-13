@@ -37,7 +37,6 @@
         Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" ShortName="Bin Weevils" />
         <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#6BC414" />
-        <uap:LockScreen Notification="badge" BadgeLogo="Assets\LockScreenLogo.png" />
       </uap:VisualElements>
     </Application>
   </Applications>
