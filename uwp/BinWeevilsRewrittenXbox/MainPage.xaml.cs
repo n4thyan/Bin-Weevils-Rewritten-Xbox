@@ -136,8 +136,7 @@ namespace BinWeevilsRewrittenXbox
                 return false;
             }
 
-            return IsHostOrSubdomain(uri.Host, "binweevils.app")
-                || IsHostOrSubdomain(uri.Host, "bwrewritten.com");
+            return IsHostOrSubdomain(uri.Host, "binweevils.app");
         }
 
         private static bool IsHostOrSubdomain(string host, string domain)
