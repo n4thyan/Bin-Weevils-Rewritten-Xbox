@@ -13,10 +13,10 @@ window.addEventListener('DOMContentLoaded', () => {
 */
 const DiscordRPC = require('discord-rpc');
 
-function redirect(){window.location.href = 'https://play.bwrewritten.com';}
+function redirect(){window.location.href = 'https://play.binweevils.app';}
 window.addEventListener('DOMContentLoaded', () => {
     var url = window.location.href;
-    if(url.includes('bwrewritten.com') == false){
+    if(url.includes('binweevils.app') == false){
         if(url.includes('discord')){
             require('electron').shell.openExternal(url);
         }
