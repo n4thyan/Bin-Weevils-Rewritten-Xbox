@@ -1,7 +1,7 @@
 {
   "name": "bwrewritten",
   "version": "1.0.0",
-  "description": "Desktop client for bwrewritten.com",
+  "description": "Desktop client for binweevils.app",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
