@@ -1,0 +1,78 @@
+name: Build Xbox UWP
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - xbox-uwp
+    paths:
+      - 'uwp/**'
+      - '.github/workflows/build-xbox-uwp.yml'
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Generate application assets
+        shell: powershell
+        run: .\uwp\scripts\Generate-PlaceholderAssets.ps1
+
+      - name: Create temporary signing certificate
+        id: certificate
+        shell: powershell
+        run: |
+          $passwordText = [Guid]::NewGuid().ToString('N')
+          $password = ConvertTo-SecureString $passwordText -AsPlainText -Force
+          $cert = New-SelfSignedCertificate `
+            -Type Custom `
+            -Subject 'CN=BinWeevilsRewrittenXbox' `
+            -KeyUsage DigitalSignature `
+            -FriendlyName 'Bin Weevils Rewritten Xbox Test Certificate' `
+            -CertStoreLocation 'Cert:\CurrentUser\My' `
+            -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}')
+
+          New-Item -ItemType Directory -Force -Path .\uwp\signing | Out-Null
+          Export-PfxCertificate -Cert $cert -FilePath .\uwp\signing\test-signing.pfx -Password $password | Out-Null
+          Export-Certificate -Cert $cert -FilePath .\uwp\signing\BinWeevilsRewrittenXbox.cer | Out-Null
+
+          "password=$passwordText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Restore packages
+        run: msbuild .\uwp\Bin-Weevils-Rewritten-Xbox.sln /t:Restore /p:Configuration=Release /p:Platform=x64
+
+      - name: Build signed APPX
+        run: >-
+          msbuild .\uwp\Bin-Weevils-Rewritten-Xbox.sln
+          /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /p:AppxBundle=Never
+          /p:UapAppxPackageBuildMode=SideloadOnly
+          /p:AppxPackageSigningEnabled=true
+          /p:PackageCertificateKeyFile=${{ github.workspace }}\uwp\signing\test-signing.pfx
+          /p:PackageCertificatePassword=${{ steps.certificate.outputs.password }}
+
+      - name: Collect test package
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path .\artifact | Out-Null
+          Get-ChildItem .\uwp\AppPackages -Recurse -File | Where-Object {
+            $_.Extension -in '.appx', '.msix', '.cer', '.ps1'
+          } | Copy-Item -Destination .\artifact -Force
+          Copy-Item .\uwp\signing\BinWeevilsRewrittenXbox.cer .\artifact\ -Force
+          Get-ChildItem .\artifact | Format-Table Name, Length
+
+      - name: Upload Xbox test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bin-Weevils-Rewritten-Xbox-test
+          path: artifact
+          if-no-files-found: error
+          retention-days: 14

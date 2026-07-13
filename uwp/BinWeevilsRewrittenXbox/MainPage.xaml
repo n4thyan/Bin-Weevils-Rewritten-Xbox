@@ -1,0 +1,42 @@
+<Page
+    x:Class="BinWeevilsRewrittenXbox.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="#101010">
+
+    <Grid>
+        <WebView
+            x:Name="GameWebView"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            NavigationStarting="GameWebView_NavigationStarting"
+            NavigationCompleted="GameWebView_NavigationCompleted"
+            NewWindowRequested="GameWebView_NewWindowRequested" />
+
+        <Border
+            x:Name="StatusOverlay"
+            Background="#CC101010"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="28"
+            CornerRadius="8">
+            <StackPanel Spacing="12">
+                <TextBlock
+                    Text="Bin Weevils Rewritten Xbox"
+                    FontSize="32"
+                    FontWeight="SemiBold"
+                    Foreground="White" />
+                <TextBlock
+                    x:Name="StatusText"
+                    Text="Opening Bin Weevils Rewritten…"
+                    FontSize="18"
+                    Foreground="White" />
+                <ProgressRing
+                    x:Name="LoadingRing"
+                    IsActive="True"
+                    Width="42"
+                    Height="42" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>
