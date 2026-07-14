@@ -29,7 +29,7 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="BinWeevilsRewrittenXbox.App">
       <uap:VisualElements
-        AppListEntry="all"
+        AppListEntry="default"
         DisplayName="Bin Weevils Rewritten Xbox"
         Description="Experimental Xbox UWP client for Bin Weevils Rewritten"
         BackgroundColor="#6BC414"
