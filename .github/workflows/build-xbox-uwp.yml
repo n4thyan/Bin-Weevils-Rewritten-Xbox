@@ -16,9 +16,18 @@ on:
       - 'uwp/**'
       - '.github/workflows/build-xbox-uwp.yml'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: bin-weevils-xbox-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
+    name: Windows UWP package
     runs-on: windows-2022
+    timeout-minutes: 60
 
     steps:
       - name: Check out repository
@@ -26,6 +35,15 @@ jobs:
 
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
+
+      - name: Report build environment
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path .\ci-diagnostics | Out-Null
+          msbuild -version | Tee-Object -FilePath .\ci-diagnostics\msbuild-version.txt
+          Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots' |
+            Format-List * |
+            Out-File .\ci-diagnostics\windows-sdk-roots.txt -Encoding utf8
 
       - name: Generate application assets
         shell: powershell
@@ -51,34 +69,69 @@ jobs:
           "password=$passwordText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Restore packages
-        run: msbuild .\uwp\Bin-Weevils-Rewritten-Xbox.sln /t:Restore /p:Configuration=Release /p:Platform=x64
-
-      - name: Build signed APPX
-        run: >-
-          msbuild .\uwp\Bin-Weevils-Rewritten-Xbox.sln
-          /m
-          /p:Configuration=Release
-          /p:Platform=x64
-          /p:AppxBundle=Never
-          /p:UapAppxPackageBuildMode=SideloadOnly
-          /p:AppxPackageSigningEnabled=true
-          /p:PackageCertificateKeyFile=${{ github.workspace }}\uwp\signing\test-signing.pfx
-          /p:PackageCertificatePassword=${{ steps.certificate.outputs.password }}
-
-      - name: Collect test package
         shell: powershell
         run: |
+          msbuild .\uwp\Bin-Weevils-Rewritten-Xbox.sln `
+            /t:Restore `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /v:minimal 2>&1 |
+            Tee-Object -FilePath .\ci-diagnostics\restore.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build signed APPX
+        shell: powershell
+        run: |
+          msbuild .\uwp\Bin-Weevils-Rewritten-Xbox.sln `
+            /m `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:AppxBundle=Never `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:AppxPackageSigningEnabled=true `
+            /p:PackageCertificateKeyFile=${{ github.workspace }}\uwp\signing\test-signing.pfx `
+            /p:PackageCertificatePassword=${{ steps.certificate.outputs.password }} `
+            /v:minimal 2>&1 |
+            Tee-Object -FilePath .\ci-diagnostics\build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Collect and verify test package
+        shell: powershell
+        run: |
+          $packageFiles = @(Get-ChildItem .\uwp\AppPackages -Recurse -File -ErrorAction Stop)
+          $appx = @($packageFiles | Where-Object { $_.Extension -in '.appx', '.msix' })
+          if ($appx.Count -eq 0) {
+            throw 'The UWP build completed without producing an APPX or MSIX package.'
+          }
+
           New-Item -ItemType Directory -Force -Path .\artifact | Out-Null
-          Get-ChildItem .\uwp\AppPackages -Recurse -File | Where-Object {
-            $_.Extension -in '.appx', '.msix', '.cer', '.ps1'
-          } | Copy-Item -Destination .\artifact -Force
+          Copy-Item .\uwp\AppPackages\* .\artifact\ -Recurse -Force
           Copy-Item .\uwp\signing\BinWeevilsRewrittenXbox.cer .\artifact\ -Force
-          Get-ChildItem .\artifact | Format-Table Name, Length
+          Copy-Item .\uwp\TESTING.md .\artifact\TESTING.md -Force
+
+          $inventory = Get-ChildItem .\artifact -Recurse -File |
+            Select-Object FullName, Length, LastWriteTime
+          $inventory | Format-Table -AutoSize |
+            Out-String |
+            Set-Content .\ci-diagnostics\artifact-files.txt
+
+          Write-Host 'Generated installable packages:'
+          $appx | Select-Object FullName, Length | Format-Table -AutoSize
 
       - name: Upload Xbox test package
         uses: actions/upload-artifact@v4
         with:
-          name: Bin-Weevils-Rewritten-Xbox-test
-          path: artifact
+          name: Bin-Weevils-Rewritten-Xbox-test-${{ github.run_number }}
+          path: artifact/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
+          compression-level: 0
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bin-Weevils-Rewritten-Xbox-diagnostics-${{ github.run_number }}
+          path: ci-diagnostics/
+          if-no-files-found: warn
+          retention-days: 7
