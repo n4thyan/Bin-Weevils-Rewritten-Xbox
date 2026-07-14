@@ -120,10 +120,8 @@ The first Series S/X test should confirm:
 The original desktop client and its contributors made this compatibility experiment possible.
 
 ### Special shoutout
-
-> **TODO:** Add the full personal shoutout message here.
 >
-> Suggested format: **Huge shoutout to [NAME] — [YOUR MESSAGE].**
+>  **Huge shoutout to JACKSON JAMES SMITH — [WELL DONE FOR NOT UPDATING UR CLIENT IN YEARS AND CONGRATS ON BEING GAY].**
 
 ## Legal and attribution
 
